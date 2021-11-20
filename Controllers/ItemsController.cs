@@ -9,15 +9,20 @@ namespace Catalog.Controllers {
     [ApiController] //brings in some default behavior to make life easier
     [Route("items")]//what http this controller is reponding to
     public class ItemsController : ControllerBase {
-        private readonly InMemItemsRepository repository;
+        //private readonly InMemItemsRepository repository; //this was for a hard depedency on an instance
         
+        // repository is now an interface reference variable. it can refer to any object that implements its interface.
+        // note: interface vars can only access the methods declared in the interface, not the other methods in the class that implements the interface.
+        private readonly IItemsRepository repository; // for dependency injection.
+
         //constructor
-        public ItemsController() {
+        public ItemsController(IItemsRepository repository) {
             //this causes a new instance of the repo each time an instance is made
             //thus a new database of items with new Guids will be generated each time
             //as a result, the Guids will always be outdated/invalid when we search with Get requests
-            repository = new InMemItemsRepository(); 
+            this.repository = repository; //the act of dependency injection
         }
+        
         [HttpGet] // GetITems reacts to a GET with route /items
         public IEnumerable<Item> GetItems() {
             var items = repository.GetItems();
