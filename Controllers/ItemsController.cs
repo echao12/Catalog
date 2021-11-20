@@ -3,6 +3,8 @@ using Catalog.Repositories; //for InMemItemsRepository
 using Catalog.Entities; //for Item
 using System.Collections.Generic; //for IEnumerable
 using System; //for Guid
+using System.Linq;
+using Catalog.Dtos;
 
 
 namespace Catalog.Controllers {
@@ -22,20 +24,21 @@ namespace Catalog.Controllers {
             //as a result, the Guids will always be outdated/invalid when we search with Get requests
             this.repository = repository; //the act of dependency injection
         }
-        
+
         [HttpGet] // GetITems reacts to a GET with route /items
-        public IEnumerable<Item> GetItems() {
-            var items = repository.GetItems();
+        public IEnumerable<ItemDto> GetItems() {
+            //project item into a ItemDto using Linq
+            var items = repository.GetItems().Select(item => item.AsDto());
             return items;
         }
 
         [HttpGet("{id}")] // template for this route. Get /items/id
-        public ActionResult<Item> GetItem(Guid id) { //ActionResult allows us to return different types
+        public ActionResult<ItemDto> GetItem(Guid id) { //ActionResult allows us to return different types
             var item = repository.GetItem(id);
             if (item is null) {
                 return NotFound(); //ActionResult allows this return type
             }
-            return item;
+            return item.AsDto();
         }
     }
 }
