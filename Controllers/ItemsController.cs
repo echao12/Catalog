@@ -40,5 +40,26 @@ namespace Catalog.Controllers {
             }
             return item.AsDto();
         }
+
+        //invoked from POST  /items  route
+        [HttpPost]
+        public ActionResult<ItemDto> CreateItem(CreateItemDto itemDto) {
+            // generate Item object on the server side
+            Item item = new() { // recall: C# 9 shorthand syntax. instead of new Item() 
+                Id = Guid.NewGuid(),
+                Name = itemDto.Name,
+                Price = itemDto.Price,
+                CreatedDate = DateTimeOffset.UtcNow
+            };
+            
+            repository.CreateItem(item); //invoke repository method to add item
+
+            // return info about the created item
+            // using createdAtAction here.
+            //  passing in the action used to get information about the item, which is GetItem for this one.
+            //  then pass the id for the GetItem route to use
+            //  lastly, actual object being returned.
+            return CreatedAtAction(nameof(GetItem), new {id = item.Id}, item.AsDto());
+        }
     }
 }
