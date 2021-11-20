@@ -61,5 +61,28 @@ namespace Catalog.Controllers {
             //  lastly, actual object being returned.
             return CreatedAtAction(nameof(GetItem), new {id = item.Id}, item.AsDto());
         }
+
+        // invoked by PUT  /items/{id}  route
+        //convention of put is to return no content, thus just an ActionResult with no alternative type.
+        [HttpPut("{id}") ] // route template takes a id
+        public ActionResult UpdateItem(Guid id, UpdateItemDto itemDto) {
+            //to update, first find item
+            var existingItem = repository.GetItem(id);
+            //check for valid existing item
+            if(existingItem is null){
+                return NotFound();
+            }
+            //update value
+            //note: with-expressions create a copy of the object with specified modifications
+            //  with-expressions are a property of Record types.
+            Item updatedItem = existingItem with { 
+                Name = itemDto.Name,
+                Price = itemDto.Price
+            };
+
+            repository.UpdateItem(updatedItem);
+            
+            return NoContent();
+        }
     }
 }

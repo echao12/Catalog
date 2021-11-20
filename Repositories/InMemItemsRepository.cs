@@ -36,5 +36,11 @@ namespace Catalog.Repositories {
         public void CreateItem(Item item){
             items.Add(item); //Add is a list type method
         }
+
+        public void UpdateItem(Item item) {
+            //find index where the existingItem matches item.Id
+            var index = items.FindIndex(existingItem => existingItem.Id == item.Id);
+            items[index] = item;
+        }
     }
 }
