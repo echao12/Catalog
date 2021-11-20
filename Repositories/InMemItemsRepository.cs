@@ -4,7 +4,7 @@ using Catalog.Entities;
 using System.Linq;
 
 namespace Catalog.Repositories {
-    public class InMemoryRepository
+    public class InMemItemsRepository
     {
         private readonly List<Item> items = new() 
         {
