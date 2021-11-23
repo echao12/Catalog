@@ -12,6 +12,11 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using Catalog.Repositories;
+using Catalog.Settings;
+using MongoDB.Driver;
+using MongoDB.Bson;//Bson
+using MongoDB.Bson.Serialization;//BsonSerializer
+using MongoDB.Bson.Serialization.Serializers;//GuidSerializer
 
 namespace Catalog
 {
@@ -27,9 +32,26 @@ namespace Catalog
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+
+            //makes Guid & datetimeoffset types friendlier to use with mongoDb
+            BsonSerializer.RegisterSerializer(new GuidSerializer(BsonType.String));//if MongoDB sees a Guid in the entities, convert it to a string in the database.
+            BsonSerializer.RegisterSerializer(new DateTimeOffsetSerializer(BsonType.String));//same thing for the DateTimeOffset types in the entities.
+
             //register dependency!
             //singleton has only ONE copy of an instance of a type during the lifetime of the program.
-            services.AddSingleton<IItemsRepository, InMemItemsRepository>(); //<interface, Instance>
+            
+            //take a serviceprovider.
+            //grab settings infomation from our MongoDB settings class.
+            services.AddSingleton<IMongoClient>(serviceProvider => {
+                //GetSection looks for the section "MongoDbSettings" under appsettings.json file.
+                //note: using nameof() b/c the class name "MongoDbSettings" is the same as the section name.
+                //      GetSection returns a IConfigurationSection type & Get<>() binds it to the <type> speficied.
+                var settings = Configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
+                return new MongoClient(settings.ConnectionString);
+            });
+
+            //swapped dependencies to use the MongoDb
+            services.AddSingleton<IItemsRepository, MongoDbItemsRepository>(); //InMemItemsRepository>(); //<interface, Instance>
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
