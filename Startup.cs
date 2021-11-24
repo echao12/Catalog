@@ -52,7 +52,13 @@ namespace Catalog
 
             //swapped dependencies to use the MongoDb
             services.AddSingleton<IItemsRepository, MongoDbItemsRepository>(); //InMemItemsRepository>(); //<interface, Instance>
-            services.AddControllers();
+            //note: ASP.Net Core 3.0+, the framework removes "Async" suffix from fns internally.
+            // ex: GetItemsAsync == GetItems    internally.
+            services.AddControllers(options => {
+                // we want to remove that behavior b/c we are using fn names to map to types in this
+                // program with nameof().
+                options.SuppressAsyncSuffixInActionNames = false;
+            });
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Catalog", Version = "v1" });

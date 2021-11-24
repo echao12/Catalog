@@ -5,7 +5,7 @@ using System.Collections.Generic; //for IEnumerable
 using System; //for Guid
 using System.Linq;
 using Catalog.Dtos;
-
+using System.Threading.Tasks;
 
 namespace Catalog.Controllers {
     [ApiController] //brings in some default behavior to make life easier
@@ -26,15 +26,16 @@ namespace Catalog.Controllers {
         }
 
         [HttpGet] // GetITems reacts to a GET with route /items
-        public IEnumerable<ItemDto> GetItems() {
+        public async Task<IEnumerable<ItemDto>> GetItemsAsync() {
             //project item into a ItemDto using Linq
-            var items = repository.GetItems().Select(item => item.AsDto());
+            //note: wrap await with the async call to make the call chain work
+            var items = (await repository.GetItemsAsync()).Select(item => item.AsDto());
             return items;
         }
 
         [HttpGet("{id}")] // template for this route. Get /items/id
-        public ActionResult<ItemDto> GetItem(Guid id) { //ActionResult allows us to return different types
-            var item = repository.GetItem(id);
+        public async Task<ActionResult<ItemDto>> GetItemAsync(Guid id) { //ActionResult allows us to return different types
+            var item = await repository.GetItemAsync(id);
             if (item is null) {
                 return NotFound(); //ActionResult allows this return type
             }
@@ -43,7 +44,7 @@ namespace Catalog.Controllers {
 
         //invoked from POST  /items  route
         [HttpPost]
-        public ActionResult<ItemDto> CreateItem(CreateItemDto itemDto) {
+        public async Task<ActionResult<ItemDto>> CreateItemAsync(CreateItemDto itemDto) {
             // generate Item object on the server side
             Item item = new() { // recall: C# 9 shorthand syntax. instead of new Item() 
                 Id = Guid.NewGuid(),
@@ -52,22 +53,22 @@ namespace Catalog.Controllers {
                 CreatedDate = DateTimeOffset.UtcNow
             };
             
-            repository.CreateItem(item); //invoke repository method to add item
+            await repository.CreateItemAsync(item); //invoke repository method to add item
 
             // return info about the created item
             // using createdAtAction here.
             //  passing in the action used to get information about the item, which is GetItem for this one.
             //  then pass the id for the GetItem route to use
             //  lastly, actual object being returned.
-            return CreatedAtAction(nameof(GetItem), new {id = item.Id}, item.AsDto());
+            return CreatedAtAction(nameof(GetItemAsync), new {id = item.Id}, item.AsDto());
         }
 
         // invoked by PUT  /items/{id}  route
         //convention of put is to return no content, thus just an ActionResult with no alternative type.
         [HttpPut("{id}") ] // route template takes a id
-        public ActionResult UpdateItem(Guid id, UpdateItemDto itemDto) {
+        public async Task<ActionResult> UpdateItemAsync(Guid id, UpdateItemDto itemDto) {
             //to update, first find item
-            var existingItem = repository.GetItem(id);
+            var existingItem = await repository.GetItemAsync(id);
             //check for valid existing item
             if(existingItem is null){
                 return NotFound();
@@ -80,21 +81,21 @@ namespace Catalog.Controllers {
                 Price = itemDto.Price
             };
 
-            repository.UpdateItem(updatedItem);
+            await repository.UpdateItemAsync(updatedItem);
 
             return NoContent();
         }
 
         // invoked by DELETE /Item/{id}
         [HttpDelete("{id}")]
-        public ActionResult DeleteItem(Guid id) {
-            var existingItem = repository.GetItem(id);
+        public async Task<ActionResult> DeleteItemAsync(Guid id) {
+            var existingItem = await repository.GetItemAsync(id);
 
             if(existingItem is null){
                 return NotFound();
             }
             
-            repository.DeleteItem(id);
+            await repository.DeleteItemAsync(id);
 
             return NoContent();
         }

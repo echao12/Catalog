@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Catalog.Entities;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Catalog.Repositories {
 
@@ -21,31 +22,37 @@ namespace Catalog.Repositories {
         };
 
         //get all items
-        public IEnumerable<Item> GetItems()
+        public async Task<IEnumerable<Item>> GetItemsAsync()
         {
-            return items;
+            //did not call async fn, just return a completed task.
+            return await Task.FromResult(items);//return a completed task with this data.
         }
 
-        public Item GetItem(Guid id)
+        public async Task<Item> GetItemAsync(Guid id)
         {
             //Where() returns a collection. use SingleOrDefault() to get the single element.
             //returns null if not found.
-            return items.Where(item => item.Id == id).SingleOrDefault();
+            var item = items.Where(item => item.Id == id).SingleOrDefault();
+            return await Task.FromResult(item);
         }
 
-        public void CreateItem(Item item){
+        public async Task CreateItemAsync(Item item){
             items.Add(item); //Add is a list type method
+            //don't have anything to return. just return a empty completed task.
+            await Task.CompletedTask;
         }
 
-        public void UpdateItem(Item item) {
+        public async Task UpdateItemAsync(Item item) {
             //find index where the existingItem matches item.Id
             var index = items.FindIndex(existingItem => existingItem.Id == item.Id);
             items[index] = item;
+            await Task.CompletedTask;
         }
 
-        public void DeleteItem(Guid id) {
+        public async Task DeleteItemAsync(Guid id) {
             var index = items.FindIndex(existingItem => existingItem.Id == id);
             items.RemoveAt(index);
+            await Task.CompletedTask;
         }
     }
 }
