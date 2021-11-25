@@ -17,6 +17,7 @@ using MongoDB.Driver;
 using MongoDB.Bson;//Bson
 using MongoDB.Bson.Serialization;//BsonSerializer
 using MongoDB.Bson.Serialization.Serializers;//GuidSerializer
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 namespace Catalog
 {
@@ -42,12 +43,13 @@ namespace Catalog
             
             //take a serviceprovider.
             //grab settings infomation from our MongoDB settings class.
+            var mongoDbSettings = Configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
             services.AddSingleton<IMongoClient>(serviceProvider => {
                 //GetSection looks for the section "MongoDbSettings" under appsettings.json file.
                 //note: using nameof() b/c the class name "MongoDbSettings" is the same as the section name.
                 //      GetSection returns a IConfigurationSection type & Get<>() binds it to the <type> speficied.
-                var settings = Configuration.GetSection(nameof(MongoDbSettings)).Get<MongoDbSettings>();
-                return new MongoClient(settings.ConnectionString);
+                
+                return new MongoClient(mongoDbSettings.ConnectionString);
             });
 
             //swapped dependencies to use the MongoDb
@@ -63,6 +65,15 @@ namespace Catalog
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Catalog", Version = "v1" });
             });
+
+            //add a mongodb health check
+            services.AddHealthChecks()
+                .AddMongoDb(
+                    mongoDbSettings.ConnectionString, 
+                    name: "mongodb", 
+                    timeout: TimeSpan.FromSeconds(3),
+                    tags: new[] { "ready" }
+                );
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -84,6 +95,15 @@ namespace Catalog
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                //map this route to perform healthchecks to see if the database is responsive by performing the healthchecks with the "ready" tag.
+                endpoints.MapHealthChecks("/health/ready", new HealthCheckOptions{
+                    Predicate = (check) => check.Tags.Contains("ready") //so far, checks if database is ready for use
+                });//maps health checks to specified route. it can be whatever.
+
+                //map this route to perform healthcheck to see if server is online.
+                endpoints.MapHealthChecks("/health/live", new HealthCheckOptions{
+                    Predicate = (_) => false // maps ignores all predicates/tags and essentially acts as a ping test to the server.
+                });//maps health checks to specified route. it can be whatever.
             });
         }
     }
