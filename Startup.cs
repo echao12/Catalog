@@ -18,6 +18,9 @@ using MongoDB.Bson;//Bson
 using MongoDB.Bson.Serialization;//BsonSerializer
 using MongoDB.Bson.Serialization.Serializers;//GuidSerializer
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using System.Text.Json;
+using System.Net.Mime;
+using Microsoft.AspNetCore.Http;
 
 namespace Catalog
 {
@@ -97,7 +100,27 @@ namespace Catalog
                 endpoints.MapControllers();
                 //map this route to perform healthchecks to see if the database is responsive by performing the healthchecks with the "ready" tag.
                 endpoints.MapHealthChecks("/health/ready", new HealthCheckOptions{
-                    Predicate = (check) => check.Tags.Contains("ready") //so far, checks if database is ready for use
+                    Predicate = (check) => check.Tags.Contains("ready"), //so far, checks if database is ready for use
+                    //generate custom response to render for this health check with response writer
+                    ResponseWriter = async(context, report) => {
+                        //create a new json string
+                        var result = JsonSerializer.Serialize(
+                            //shape the response we want to get back
+                            new {
+                                status = report.Status.ToString(), // show status
+                                //show an array of checks by projecting each entry into a new anonymous type
+                                checks = report.Entries.Select(entry => new {
+                                    name = entry.Key, // show the name
+                                    status = entry.Value.Status.ToString(), //status of this check
+                                    exception = entry.Value.Exception != null ? entry.Value.Exception.Message : "none", // not a null exception(there is an exception)? show msg. else show "none" 
+                                    duration = entry.Value.Duration.ToString() // how long the health check took
+                                })
+                            }
+                        );
+                        //format the output
+                        context.Response.ContentType = MediaTypeNames.Application.Json; // tells response to render as a json
+                        await context.Response.WriteAsync(result); //output the information to screen
+                    }
                 });//maps health checks to specified route. it can be whatever.
 
                 //map this route to perform healthcheck to see if server is online.
