@@ -6,6 +6,7 @@ using System; //for Guid
 using System.Linq;
 using Catalog.Dtos;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Catalog.Controllers {
     [ApiController] //brings in some default behavior to make life easier
@@ -16,13 +17,15 @@ namespace Catalog.Controllers {
         // repository is now an interface reference variable. it can refer to any object that implements its interface.
         // note: interface vars can only access the methods declared in the interface, not the other methods in the class that implements the interface.
         private readonly IItemsRepository repository; // for dependency injection.
+        private readonly ILogger<ItemsController> logger;
 
         //constructor
-        public ItemsController(IItemsRepository repository) {
+        public ItemsController(IItemsRepository repository, ILogger<ItemsController> logger) {
             //this causes a new instance of the repo each time an instance is made
             //thus a new database of items with new Guids will be generated each time
             //as a result, the Guids will always be outdated/invalid when we search with Get requests
             this.repository = repository; //the act of dependency injection
+            this.logger = logger;
         }
 
         [HttpGet] // GetITems reacts to a GET with route /items
@@ -30,6 +33,8 @@ namespace Catalog.Controllers {
             //project item into a ItemDto using Linq
             //note: wrap await with the async call to make the call chain work
             var items = (await repository.GetItemsAsync()).Select(item => item.AsDto());
+            
+            logger.LogInformation($"{DateTime.UtcNow.ToString("hh:mm:ss")}: Retrieved {items.Count()} items");
             return items;
         }
 
